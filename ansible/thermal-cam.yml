@@ -1,0 +1,33 @@
+---
+- hosts: all
+  remote_user: pi
+  become: true
+  become_method: sudo
+
+  tasks:
+    - name: Install required packages
+      apt: name={{ item }} state=present
+      with_items:
+        - matchbox-keyboard
+        - git
+        - python3-pip
+        - python-scipy
+        - python-pygame
+        - build-essential
+        - python-dev
+        - python-smbus
+      become: true
+      become_method: sudo
+
+    - name: Install required Python packages
+      pip:
+        name: colour Adafruit_AMG88xx
+
+    - name: Checkout the Adafruit Fork From GitHub
+      git:
+        repo: https://github.com/Ben-Chapman/Adafruit_AMG88xx_python.git
+        dest: /home/pi/thermal-cam
+      remote_user: pi
+
+    - name: Reboot RPi
+      command: /sbin/reboot

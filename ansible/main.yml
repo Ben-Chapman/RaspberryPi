@@ -1,0 +1,124 @@
+---
+# This Ansible playbook will configure a newly built Raspian image to a baseline configuration.
+# Before running this playbook you'll need to manually:
+#  - Install Raspian
+#  - Configure WiFi or Ethernet
+#    - Note the IP addres of your RPi
+#  - Manually enable ssh
+#  - Copy your ssh key over to the Pi
+#    - ssh-copy-id pi@pi_ip_addr
+#
+# Run this playbook:
+#  - ansible-playbook main.yml --extra-vars="enable_camera=y,something_else=y" -i pi_ip_addr,
+# Don't forget the trailing comma, and see the vars section below for all possible variables.
+
+- hosts: all
+  remote_user: pi
+  become: true
+  become_method: sudo
+
+
+  vars_prompt:
+    - name: "pi_password"
+      prompt: "Enter a new password for the pi user"
+      private: yes
+      confirm: yes
+
+  vars:
+    - name: "enable_camera"
+      default: n
+
+    - name: "disable_bluetooth"
+      default: n
+
+    - name: "enable_i2c"
+      default: n
+
+    - name: "enable_1w"
+      default: n
+
+    - name: "enable_spi"
+      default: n
+
+  tasks:
+    - name: Change the pi user's password
+      user:
+        name: pi
+        password: "{{ pi_password|password_hash('sha512') }}"
+        update_password: always
+      no_log: True
+
+    - name: Set timezone to America/New York
+      timezone:
+        name: America/New_York
+
+    # Configuring interfaces
+    - name: Enable camera
+      blockinfile:
+        path: /boot/config.txt
+        block: |
+          start_x=1
+          gpu_mem=128
+          disable_camera_led=1
+      when: enable_camera == "y"
+
+    - name: Disable Bluetooth
+      lineinfile:
+        path: /boot/config.txt
+        line: 'dtoverlay=pi3-disable-bt'
+      when: disable_bluetooth == "y"
+
+    - name: Enable the I2C Interface
+      replace:
+        path: /boot/config.txt
+        regexp: '#dtparam=i2c_arm=on'
+        replace: 'dtparam=i2c_arm=on'
+      when: enable_i2c == "y"
+
+    - name: Enable the SPI Interface
+      replace:
+        path: /boot/config.txt
+        regexp: '#dtparam=spi=on'
+        replace: 'dtparam=spi=on'
+      when: enable_spi == "y"
+
+    - name: Enable the 1-wire Interface
+      blockinfile:
+        path: /boot/config.txt
+        block: |
+          dtoverlay=w1-gpio
+      when: enable_1w == "y"
+
+    - name: Configure en_US Locale
+      replace:
+        path: /etc/locale.gen
+        regexp: '#en_US.UTF-8 UTF-8'
+        replace: 'en_US.UTF-8 UTF-8'
+
+    - name: Enable en_US Locale
+      command: "{{ item }}"
+      with_items:
+      - locale-gen en_US.UTF-8
+      - update-locale en_US.UTF-8
+
+    # Reboot and wait courtesy of https://gist.github.com/infernix/a968f23c4f4e1d6723e4
+    - name: Reboot the Raspberry Pi
+      shell: shutdown -r now
+
+    - name: Wait for the RPi to finish rebooting (up to 5 minutes)
+      local_action: shell ansible -u {{ ansible_user_id }} -m ping {{ inventory_hostname }}
+      register: result
+      until: result.rc == 0
+      retries: 30
+      delay: 10
+
+    - name: Update all packages to the latest version
+      apt:
+        update_cache: yes
+        upgrade: dist
+        autoclean: yes
+        autoremove: yes
+      become: true
+      become_method: sudo
+
+
