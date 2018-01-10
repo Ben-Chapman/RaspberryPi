@@ -6,7 +6,7 @@
 #    - Note the IP addres of your RPi
 #  - Manually enable ssh
 #  - Copy your ssh key over to the Pi
-#    - ssh-copy-id pi@pi_ip_addr
+#    - ssh-copy-id pi@pi_ipaddr
 #
 # Run this playbook:
 #  - ansible-playbook main.yml --extra-vars="enable_camera=y,something_else=y" -i pi_ip_addr,
@@ -24,6 +24,7 @@
       private: yes
       confirm: yes
 
+
   vars:
     - name: "enable_camera"
       default: n
@@ -39,6 +40,7 @@
 
     - name: "enable_spi"
       default: n
+
 
   tasks:
     - name: Change the pi user's password

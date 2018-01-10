@@ -1,3 +1,4 @@
+# Playbook to configure a Respian-based Raspberry PI to support the MPR121 Capacative Touch HAT
 ---
 - hosts: all
   remote_user: pi
@@ -8,10 +9,8 @@
     - name: Install required packages
       apt: name={{ item }} state=present
       with_items:
-        - matchbox-keyboard
         - git
         - python3-pip
-        - python-scipy
         - python-pygame
         - build-essential
         - python-dev
@@ -19,15 +18,15 @@
       become: true
       become_method: sudo
 
+    - name: Checkout the Adafruit MPR121 Repo from Github
+      git:
+        repo: https://github.com/adafruit/Adafruit_Python_MPR121.git
+        dest: /home/pi/cap-touch
+      remote_user: pi
+
     - name: Install required Python packages
       pip:
-        name: colour Adafruit_AMG88xx
-
-    - name: Checkout the Adafruit Fork From GitHub
-      git:
-        repo: https://github.com/Ben-Chapman/Adafruit_AMG88xx_python.git
-        dest: /home/pi/thermal-cam
-      remote_user: pi
+        name: Adafruit-GPIO
 
     - name: Reboot the Raspberry Pi
       command: /sbin/reboot
