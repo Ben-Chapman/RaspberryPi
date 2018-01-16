@@ -2,10 +2,26 @@
 ---
 - hosts: all
   remote_user: pi
-  become: true
-  become_method: sudo
+
 
   tasks:
+    - name: Enable the I2C Interface
+      block:
+        - replace:
+            path: /boot/config.txt
+            regexp: '#dtparam=i2c_arm=on'
+            replace: 'dtparam=i2c_arm=on'
+          become: true
+          become_method: sudo
+
+      # See https://learn.adafruit.com/mpr121-capacitive-touch-sensor-on-raspberry-pi-and-beaglebone-black/software for detail
+        - blockinfile:
+            path: /boot/config.txt
+            block: |
+              dtoverlay=i2c-bcm2708
+            become: true
+            become_method: sudo
+
     - name: Install required packages
       apt: name={{ item }} state=present
       with_items:
@@ -22,11 +38,11 @@
       git:
         repo: https://github.com/adafruit/Adafruit_Python_MPR121.git
         dest: /home/pi/cap-touch
-      remote_user: pi
 
     - name: Install required Python packages
-      pip:
-        name: Adafruit-GPIO
+      command: python /home/pi/cap-touch setup.py install
+      become: true
+      become_method: sudo
 
-    - name: Reboot the Raspberry Pi
+    - name: Reboot the Raspberry Pi to enable system-level changes
       command: /sbin/reboot
