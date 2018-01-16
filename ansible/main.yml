@@ -92,16 +92,16 @@
       when: enable_1w == "y"
 
     - name: Configure en_US Locale
-      replace:
-        path: /etc/locale.gen
-        regexp: '#en_US.UTF-8 UTF-8'
-        replace: 'en_US.UTF-8 UTF-8'
+      block:
+        - replace:
+            path: /etc/locale.gen
+            regexp: '#en_US.UTF-8 UTF-8'
+            replace: 'en_US.UTF-8 UTF-8'
 
-    - name: Enable en_US Locale
-      command: "{{ item }}"
-      with_items:
-      - locale-gen en_US.UTF-8
-      - update-locale en_US.UTF-8
+        - command: "{{ item }}"
+          with_items:
+          - locale-gen en_US.UTF-8
+          - update-locale en_US.UTF-8
 
     # Reboot and wait courtesy of https://gist.github.com/infernix/a968f23c4f4e1d6723e4
     - name: Reboot the Raspberry Pi
